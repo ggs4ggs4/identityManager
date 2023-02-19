@@ -1,64 +1,43 @@
-def gender(data):
-    for x in data:
-        if x[0].lower()=="male":
-            print('male',end=', ')
-            return 'male'
-    print('female',end=', ')
-    return 'female'
+def make_request(img):
+    import requests
+    url = "https://porcupyne.onrender.com/convert"
+    img_path = img
 
-def name_check(name,data):
-    name=name.lower()
-    name=sorted(list(name.split()))
-    datatemp=[x[0] for x in data]
-    for i in range(len(datatemp)-len(name)):
-        # print(datatemp[i:i+len(name)])
-        if sorted(datatemp[i:i+len(name)])==name:
-            print('name True',end=', ')
-            return True
-    print('name False',end=', ')
+    files = {"file": open(img_path, "rb")}
+
+    response = requests.post(url, files=files)
+
+    if response.status_code == 200:
+        # pprint(type(response.json()))
+        return response.json()["results"]["lines"]
+
+import re
+
+def is_male(g,lines):
+    res = False
+    for line in lines:
+        res = res or bool(re.search("female", line.lower()))
+    if res and g.lower()=='female':
+        return True
+    if (not res) and g.lower()=='male':
+        return True
     return False
+def name_checker(name, lines):
+    res = False
+    for line in lines:
+        res = res or bool(re.search(name.lower(), line.lower()))
+    return res
+def aadhaar_checker(aadhaar, lines):
+    res = False
+    aadhaar = str(aadhaar)
+    aadhaar = aadhaar[0:4] + " " + aadhaar[4:8] + " " + aadhaar[8:12]
+    for line in lines:
+        res = res or bool(re.search(aadhaar, line))
+    return res
 
-def phone_number(data):
-    possible=[]
-    for x in data:
-        if len(x[0])==10:
-            try:
-                int(x[0])
-                possible.append(x[0])
-            except:
-                pass
-    return possible[-1]
-
-def get_aadhar(data):
-    aadhar=[]
-    for x in data:
-        if len(x[0])==4:
-            try:
-                int(x[0])
-                aadhar.append(x)
-            except:
-                pass
-    aadhar.sort(key=lambda x: (x[1][0][0]))
-    # print(aadhar)
-    print(''.join([x[0] for x in aadhar]))
-    return ''.join([x[0] for x in aadhar])
-
-def aadhar_check(pipeline,path,name,aadhaar,g):
-    import keras_ocr
-    images = [
-        keras_ocr.tools.read(url) for url in [
-            path,
-            
-        ]
-    ]
-    print(len(images))
-    from pprint import pprint
-    prediction_groups = pipeline.recognize(images)
-
-    sorted_aadhaar = sorted(prediction_groups[0], key=lambda x: (x[1][0][1],x[1][0][0]))
-    return (g.lower()==gender(sorted_aadhaar)) and name_check(name,sorted_aadhaar) and (get_aadhar(sorted_aadhaar)==aadhaar)
-    print(gender(sorted_aadhaar),name_check(name,sorted_aadhaar),phone_number(sorted_aadhaar),get_aadhar(sorted_aadhaar))
-    # [print(x[0]) for x in sorted_aadhaar]
-    # sorted_id = sorted(prediction_groups[1], key=lambda x: (x[1][0][1],x[1][0][0]))
-    # [print(x[0]) for x in sorted_id]
-
+def aadhar_check(path,name,aadhaar,g):
+    try:
+        lines = make_request(path)
+        return is_male(g,lines) and name_checker(name,lines) and aadhaar_checker(aadhaar,lines)
+    except:
+        return False
