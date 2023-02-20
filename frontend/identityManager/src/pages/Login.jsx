@@ -3,7 +3,7 @@ import Footer from '../components/Footer'
 import Navbar from '../components/Navbar'
 import { ethers } from "ethers";
 import { toast } from "react-hot-toast";
-import { loginIdentity, returnEmail } from '../blockchain/interact';
+import { loginIdentity, returnEmail, identityExists } from '../blockchain/interact';
 import { ReactSession } from "react-client-session";
 import { useRef } from 'react';
 import axios from 'axios';
@@ -31,13 +31,24 @@ const Login = () => {
 
   const signIn = async function (e) {
     e.preventDefault();
+    const exists = await identityExists(adhaar);
+    if(!exists)
+      {
+        toast.error('Identity does not exist!');
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      }
+
     var result = await loginIdentity(adhaar);
     if (result) {
       var _email = await returnEmail(adhaar);
-      if(!email)
+      if(!_email)
       {
         toast.error('Adhaar number incorrect or user not registered!');
-        window.location.reload();
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       }
       else
       {
